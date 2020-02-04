@@ -4,12 +4,15 @@ const dotenv = require('dotenv');
 const morgan = require('morgan');
 const connectDB = require('./config/db');
 const colors = require('colors');
+// important:- if you want to be able to use this in the bootcamps controller methods it has to be after Mount routers code line (because middleware is executed in a linear order)
+const errorHandler = require('./middleware/error');
 // Load env vars
 dotenv.config({ path: './config/config.env' });
 // Connect to database
 connectDB();
 // Route files
 const bootcamps = require('./routes/bootcamps');
+const courses = require('./routes/courses');
 
 const app = express();
 // Body parser
@@ -23,6 +26,9 @@ if (process.env.NODE_ENV === 'development') {
 }
 // Mount routers
 app.use('/api/v1/bootcamps', bootcamps);
+app.use('/api/v1/courses', courses);
+
+app.use(errorHandler);
 const PORT = process.env.PORT || 5000;
 const server = app.listen(
   PORT,

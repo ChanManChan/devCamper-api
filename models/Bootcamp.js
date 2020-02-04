@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+const slugify = require('slugify');
+const geocoder = require('../utils/geocoder');
 const BootcampSchema = new mongoose.Schema(
   {
     name: {
@@ -114,10 +116,61 @@ const BootcampSchema = new mongoose.Schema(
     //   ref: 'User',
     //   required: true
     // }
+  },
+  // Virtuals are document properties that you can get and set but that do not get persisted to MongoDB, we are do below code to show courses for each bootcamp within its fetched JSON object
+  {
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
-  // {
-  //   toJSON: { virtuals: true },
-  //   toObject: { virtuals: true }
-  // }
 );
+// Create bootcamp slug from the name
+// use standard functions instead of arrow functions due to scope because arrow functions handle scope differently (ie. the 'this' keyword differently)
+BootcampSchema.pre('save', function(next) {
+  // console.log('Slugify ran', this.name);
+  // LHS ie. the 'this.slug' is the slug in this model above
+  this.slug = slugify(this.name, { lower: true });
+  next();
+});
+// Geocode and create location field (create a middleware below)
+BootcampSchema.pre('save', async function(next) {
+  // we can access any of the fields above with the 'this' keyword
+  const loc = await geocoder.geocode(this.address);
+  this.location = {
+    // the client is sending an address and we are taking that address, disecting it, geocoding it, putting it in the location field and we have the formattedAddress so dont really need that address saved in our database. Therefore stop that from happening below
+    // we have an enum value of just Point for location
+    type: 'Point',
+    coordinates: [loc[0].longitude, loc[0].latitude],
+    formattedAddress: loc[0].formattedAddress,
+    street: loc[0].streetName,
+    city: loc[0].city,
+    state: loc[0].stateCode,
+    zipcode: loc[0].zipcode,
+    country: loc[0].countryCode
+  };
+  // Do not save address in DB
+  this.address = undefined;
+  next();
+});
+
+// Cascade delete courses when a bootcamp is deleted
+// .pre() middleware and in controllers/bootcamps.js within deleteBootcamp method we did findByIdAndDelete() which will not trigger this middleware. Fix:- just call findById(...) which will get the bootcamp and then take the bootcamp
+//and call bootcamp.remove() and this is going to trigger this '.pre(...)' middleware
+BootcampSchema.pre('remove', async function(next) {
+  // once we remove a bootcamp, we can access the fields with 'this.' and then whatever field
+  // and reason we can access the fields with 'this.' even though we are removing is because we are doing '.pre(....)'
+  console.log(`Courses being removed from bootcamp ${this._id}`);
+  await this.model('Course').deleteMany({ bootcamp: this._id });
+  next();
+});
+
+// Reverse populate with virtuals
+// .virtual() takes in two things, first, the field that we want to add as a virtual which is going to be 'courses' and some options
+BootcampSchema.virtual('courses', {
+  // reference to the model we are going to be using
+  ref: 'Course',
+  localField: '_id',
+  // foreignField is going to be the field in the Course model that we want to pertain to which is 'bootcamp:'
+  foreignField: 'bootcamp',
+  justOne: false
+});
 module.exports = mongoose.model('Bootcamp', BootcampSchema);
