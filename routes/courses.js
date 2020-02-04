@@ -20,6 +20,7 @@ router
   .route('/')
   .get(advancedResults(Course,{
     // we need to change the controller method 'getCourses' inside 'controllers/courses.js'
+    // we will also get the bootcamp object with the below given select fields in every type of query because i did populate it here
     path: 'bootcamp',
     select: 'name description'
   }),getCourses)
