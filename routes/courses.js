@@ -6,6 +6,10 @@ const {
   updateCourse,
   deleteCourse
 } = require('../controllers/courses');
+
+const Course=require('../models/Course');
+const advancedResults=require('../middleware/advancedResults');
+
 // mergeParams:true is to make router.use('/:bootcampId/courses', courseRouter); from bootcamps.js (routes) work
 const router = express.Router({ mergeParams: true });
 
@@ -14,7 +18,11 @@ const router = express.Router({ mergeParams: true });
 //adding a course should be just on the '/' because even though its /bootcamps/:bootcampId/courses, in our bootcamps route we basically forwarded that to our courseRouter
 router
   .route('/')
-  .get(getCourses)
+  .get(advancedResults(Course,{
+    // we need to change the controller method 'getCourses' inside 'controllers/courses.js'
+    path: 'bootcamp',
+    select: 'name description'
+  }),getCourses)
   .post(addCourse);
 
 router

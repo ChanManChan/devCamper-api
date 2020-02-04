@@ -41,6 +41,7 @@ const courses = JSON.parse(
 const importData = async () => {
   try {
     // similar to what we do in the createBootcamp controller method
+    // below awaits are responsible for actually pushing data from '_data/xxx.json' to MongoDB
     await Bootcamps.create(bootcamps);
     await Course.create(courses);
     console.log('Data Imported...'.green.inverse);

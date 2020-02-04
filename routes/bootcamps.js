@@ -5,8 +5,13 @@ const {
   createBootcamp,
   updateBootcamp,
   deleteBootcamp,
-  getBootcampsInRadius
+  getBootcampsInRadius,
+  bootcampPhotoUpload
 } = require('../controllers/bootcamps');
+
+const Bootcamp=require('../models/Bootcamp');
+// where ever we want to use advancedResults, we need to pass it in with the method
+const advancedResults=require('../middleware/advancedResults');
 // Include other resource routers
 const courseRouter = require('./courses');
 
@@ -17,9 +22,13 @@ router.use('/:bootcampId/courses', courseRouter);
 
 // this goes from api/v1/bootcamps/.....then whatever...
 router.route('/radius/:zipcode/:distance').get(getBootcampsInRadius);
+
+router.route('/:id/photo').put(bootcampPhotoUpload);
+
 router
   .route('/')
-  .get(getBootcamps)
+  // syntax for advancedResults :- advancedResults(model,populate) and we are implementing this middleware for getBootcamps method so lets go back to that method (controllers/bootcamps.js) and we should have access to 'res.advancedResults' object which has all the stuff in it which is basically what we want to send to the client
+  .get(advancedResults(Bootcamp,'courses'),getBootcamps)
   .post(createBootcamp);
 router
   .route('/:id')

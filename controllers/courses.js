@@ -8,19 +8,33 @@ const Bootcamp = require('../models/Bootcamp');
 // @route   GET /api/v1/bootcamps/:bootcampId/courses  <-- to get all courses related to a bootcamp
 // @access  Public
 exports.getCourses = asyncHandler(async (req, res, next) => {
-  let query;
+  // some changes are made due to advancedResults middleware and are marked with '**' on the changes
+  //**  let query;
   if (req.params.bootcampId) {
-    query = Course.find({ bootcamp: req.params.bootcampId });
+    //** query = Course.find({ bootcamp: req.params.bootcampId });
+    const courses =await Course.find({ bootcamp: req.params.bootcampId });
+    //** below- because we are not going to use all the pagination and stuff if we are just getting courses for the bootcamp, we only want to use it when we are getting all the courses 
+    return res.status(200).json({
+      success:true,
+      count:courses.length,
+      data:courses
+    })
   } else {
+    //** BELOW IS FOR GETTING ALL OF THE COURSES 
+
+    //** when we get all courses, we should be able to implement pagination and all that stuff 
+    res.status(200).json(res.advancedResults);
+
     // bootcampId not found that means get all courses therefore dont pass in anything on .find() method
     // .populate() method is used to fill in required bootcamp details within each course
-    query = Course.find().populate({
-      path: 'bootcamp',
-      select: 'name description'
-    });
+    //** query = Course.find().populate({
+      // copy below populate object contents and pass it through advancedResults middleware in 'routes/courses.js' inside the get() method
+      //** path: 'bootcamp',
+      //** select: 'name description'
+    //** });
   }
-  const courses = await query;
-  res.status(200).json({ success: true, count: courses.length, data: courses });
+  //** const courses = await query;
+  //** res.status(200).json({ success: true, count: courses.length, data: courses });
 });
 
 // @desc    Get single course
