@@ -109,13 +109,14 @@ const BootcampSchema = new mongoose.Schema(
     createdAt: {
       type: Date,
       default: Date.now
-    }
+    },
     // later on we are going to have a user field because we need a user associated with a bootcamp so we know who added which bootcamp
-    // user: {
-    //   type: mongoose.Schema.ObjectId,
-    //   ref: 'User',
-    //   required: true
-    // }
+    // in order for a user to get inserted into this field we have to edit our bootcamp controller
+    user: {
+      type: mongoose.Schema.ObjectId,
+      ref: 'User',
+      required: true
+    }
   },
   // Virtuals are document properties that you can get and set but that do not get persisted to MongoDB, we are do below code to show courses for each bootcamp within its fetched JSON object
   {

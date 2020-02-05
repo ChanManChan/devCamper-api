@@ -10,12 +10,15 @@ const {
 } = require('../controllers/bootcamps');
 
 const Bootcamp=require('../models/Bootcamp');
-// where ever we want to use advancedResults, we need to pass it in with the method
+// wherever we want to use advancedResults, we need to pass it in with the method
 const advancedResults=require('../middleware/advancedResults');
 // Include other resource routers
 const courseRouter = require('./courses');
 
 const router = express.Router();
+
+// wherever we put 'protect' the user has to be logged in and 'authorize' is like permission for performing certain actions as a specific user role
+const {protect,authorize} =require('../middleware/auth');
 
 //Re-route into other resource routers
 router.use('/:bootcampId/courses', courseRouter);
@@ -23,18 +26,21 @@ router.use('/:bootcampId/courses', courseRouter);
 // this goes from api/v1/bootcamps/.....then whatever...
 router.route('/radius/:zipcode/:distance').get(getBootcampsInRadius);
 
-router.route('/:id/photo').put(bootcampPhotoUpload);
+// we do want to PROTECT and AUTHORIZE below route (and make sure to put authorize after protect)
+router.route('/:id/photo').put(protect,authorize('publisher','admin'), bootcampPhotoUpload);
 
 router
   .route('/')
   // syntax for advancedResults :- advancedResults(model,populate) and we are implementing this middleware for getBootcamps method so lets go back to that method (controllers/bootcamps.js) and we should have access to 'res.advancedResults' object which has all the stuff in it which is basically what we want to send to the client
   .get(advancedResults(Bootcamp,'courses'),getBootcamps)
-  .post(createBootcamp);
+  // we need to PROTECT and AUTHORIZE below route
+  .post(protect, authorize('publisher','admin'),createBootcamp);
 router
   .route('/:id')
   .get(getBootcamp)
-  .put(updateBootcamp)
-  .delete(deleteBootcamp);
+  // for both update and delete we want to PROTECT and AUTHORIZE the routes
+  .put(protect,authorize('publisher','admin'), updateBootcamp)
+  .delete(protect,authorize('publisher','admin'), deleteBootcamp);
 // ROUTES
 // router.get('/', (req, res) => {
 // res.send('<h1>Hello from express</h1>');

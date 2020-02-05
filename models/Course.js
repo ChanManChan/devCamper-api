@@ -40,6 +40,12 @@ const CourseSchema = new mongoose.Schema({
     ref: 'Bootcamp',
     // required is true because every course needs to have a bootcamp
     required: true
+  },
+  // below is the relationship with the User model, after adding below object go to the courses controller and go to addcourse and add the functionality!
+  user: {
+    type: mongoose.Schema.ObjectId,
+    ref: 'User',
+    required: true
   }
 });
 

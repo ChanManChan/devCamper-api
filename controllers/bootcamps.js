@@ -19,7 +19,7 @@ exports.getBootcamps = asyncHandler(async (req, res, next) => {
   // const removeFields = ['select', 'sort', 'page', 'limit'];
   // Loop over removeFields and delete them from reqQuery
   // removeFields.forEach(param => delete reqQuery[param]);
- 
+
   // Create query string
   // let queryStr = JSON.stringify(reqQuery);
   // inserting a '$' sign before the query string to match the mongoDB Documentation
@@ -27,26 +27,26 @@ exports.getBootcamps = asyncHandler(async (req, res, next) => {
   // Create operators like ($gt, $gte, etc)
   // queryStr = queryStr.replace(/\b(gt|gte|lt|lte|in)\b/g, match => `$${match}`);
   // console.log(queryStr);
- 
+
   // Finding resource
   // .populate('courses') was added later to show all the courses within each bootcamp as an array of objects
   // query = Bootcamp.find(JSON.parse(queryStr)).populate('courses');
- 
+
   // SELECT FIELDS
   // if (req.query.select) {
-    // in the URL we want to seperate the search queries using ',' and not space therefore below line of code (because mongoose format requires us to seperate the search queries using space only to work properly)
-    // const fields = req.query.select.split(',').join(' ');
-    // format mongoose :- query.select('name occupation');  <--- we are getting this from above line
-    // query = query.select(fields);
-    // console.log(fields);
+  // in the URL we want to seperate the search queries using ',' and not space therefore below line of code (because mongoose format requires us to seperate the search queries using space only to work properly)
+  // const fields = req.query.select.split(',').join(' ');
+  // format mongoose :- query.select('name occupation');  <--- we are getting this from above line
+  // query = query.select(fields);
+  // console.log(fields);
   // }
   // SORT
   // if (req.query.sort) {
   //   const sortBy = req.query.sort.split(',').join(' ');
   //   query = query.sort(sortBy);
   // } else {
-    // query.sort() is a mongoose method
-    // use negative sign for reverse sorting {{URL}}/api/v1/bootcamps?select=name,description,housing&sort=-name
+  // query.sort() is a mongoose method
+  // use negative sign for reverse sorting {{URL}}/api/v1/bootcamps?select=name,description,housing&sort=-name
   //   query = query.sort('-createdAt');
   // }
   // PAGINATION
@@ -59,7 +59,7 @@ exports.getBootcamps = asyncHandler(async (req, res, next) => {
   // const endIndex = page * limit;
   // below to count all the documents through mongoose
   // const total = await Bootcamp.countDocuments();
- 
+
   // query = query.skip(startIndex).limit(limit);
   // try {
   // const bootcamps = await Bootcamp.find();
@@ -79,7 +79,6 @@ exports.getBootcamps = asyncHandler(async (req, res, next) => {
   //     limit
   //   };
   // }
-
 
   // BELOW res.status(200).json({...}) BEFORE APPLYING advancedResults.js middleware
   // res.status(200).json({
@@ -138,6 +137,24 @@ exports.createBootcamp = asyncHandler(async (req, res, next) => {
   // console.log(req.body);
   // res.status(200).json({ success: true, msg: 'Create new bootcamp' });
   // try {
+
+  // Add user to req.body (req.user is the logged in user)
+  req.body.user = req.user.id;
+  // so now when we go ahead and create Bootcamp.create(req.body) we will now have the user on it
+
+  // Check for published bootcamp <--this will find all bootcamps created by the logged in user
+  const publishedBootcamp = await Bootcamp.findOne({ user: req.user.id });
+
+  // if the user is not an admin, they can only add one bootcamp
+  if (publishedBootcamp && req.user.role !== 'admin') {
+    return next(
+      new ErrorResponse(
+        `The user with ID ${req.user.id} has already published a bootcamp`,
+        400
+      )
+    );
+  }
+  // when we import with the seeder it goes through the model and we have an enum in the model where it can only be a user or a publisher, for it to be an admin i actually have to change that in the database itself...thats why i dont have admin role in the _data/users.json file.It wont let us do that! it still adheres to all the rules in the model.
   const bootcamp = await Bootcamp.create(req.body);
   res.status(201).json({
     success: true,
@@ -156,16 +173,33 @@ exports.createBootcamp = asyncHandler(async (req, res, next) => {
 // @access  Private                    <---do you need to be logged in to hit this route (send a token)(private === you need a token)
 exports.updateBootcamp = asyncHandler(async (req, res, next) => {
   // try {
-  const bootcamp = await Bootcamp.findByIdAndUpdate(req.params.id, req.body, {
+  // const bootcamp = await Bootcamp.findByIdAndUpdate(req.params.id, req.body, {
     // new:true because when we get our response, we want the data to be the updated data ie the new data
-    new: true,
-    runValidators: true
-  });
+  //   new: true,
+  //   runValidators: true
+  // });
+
+
+  let bootcamp = await Bootcamp.findById(req.params.id);
+
   if (!bootcamp) {
     return next(
       new ErrorResponse(`Bootcamp not found with id of ${req.params.id}`, 404)
     );
   }
+
+  // Make sure user is bootcamp owner, bootcamp.user <--this is an objectID & req.user.id <-- is a string ;;; and an admin should be able to update a bootcamp regardless
+  if (bootcamp.user.toString() !== req.user.id && req.user.role!=='admin') {
+    return next(
+      new ErrorResponse(`User ${req.params.id} is not authorized to update this bootcamp`, 401)
+    );
+  }
+
+  bootcamp=await Bootcamp.findByIdAndUpdate(req.params.id,req.body,{
+    new:true,
+    runValidators:true
+  });
+
   res.status(200).json({ success: true, data: bootcamp });
   // } catch (err) {
   // res.status(400).json({ success: false });
@@ -188,6 +222,15 @@ exports.deleteBootcamp = asyncHandler(async (req, res, next) => {
       new ErrorResponse(`Bootcamp not found with id of ${req.params.id}`, 404)
     );
   }
+
+   // Make sure user is bootcamp owner, bootcamp.user <--this is an objectID & req.user.id <-- is a string ;;; and an admin should be able to update a bootcamp regardless
+   if (bootcamp.user.toString() !== req.user.id && req.user.role!=='admin') {
+    return next(
+      new ErrorResponse(`User ${req.params.id} is not authorized to delete this bootcamp`, 401)
+    );
+  }
+
+
   // this .remove() method will trigger the '.pre()' middleware in models/Bootcamp.js end
   bootcamp.remove();
   res.status(200).json({ success: true, data: {} });
@@ -235,6 +278,15 @@ exports.bootcampPhotoUpload = asyncHandler(async (req, res, next) => {
       new ErrorResponse(`Bootcamp not found with id of ${req.params.id}`, 404)
     );
   }
+
+ // Make sure user is bootcamp owner, bootcamp.user <--this is an objectID & req.user.id <-- is a string ;;; and an admin should be able to update a bootcamp regardless
+ if (bootcamp.user.toString() !== req.user.id && req.user.role!=='admin') {
+  return next(
+    new ErrorResponse(`User ${req.params.id} is not authorized to update this bootcamp`, 401)
+  );
+}
+
+
   if (!req.files) {
     return next(new ErrorResponse(`Please upload a file`, 400));
   }

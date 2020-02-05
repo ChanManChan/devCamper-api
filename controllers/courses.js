@@ -60,6 +60,8 @@ exports.getCourse = asyncHandler(async (req, res, next) => {
 exports.addCourse = asyncHandler(async (req, res, next) => {
   // in our Course model bootcamp is an actual field therefore i manually assign bootcampId from the request url to the req.body.bootcamp
   req.body.bootcamp = req.params.bootcampId;
+  // now we are getting from the req.user.id (logged in user's id) and put that also in the body
+  req.body.user=req.user.id;
   const bootcamp = await Bootcamp.findById(req.params.bootcampId);
   if (!bootcamp) {
     return next(
@@ -69,6 +71,17 @@ exports.addCourse = asyncHandler(async (req, res, next) => {
       )
     );
   }
+
+   // Make sure user is bootcamp owner, bootcamp.user <--this is an objectID & req.user.id <-- is a string ;;; and an admin should be able to update a bootcamp regardless
+
+  //  Course is associated with the bootcamp and therefore i want the owner of the bootcamp to be able to add the course and not just anybody should be able to add a course to a specific bootcamp, unless they are 'admin'
+ if (bootcamp.user.toString() !== req.user.id && req.user.role!=='admin') {
+  return next(
+    new ErrorResponse(`User ${req.user.id} is not authorized to add a course to bootcamp ${bootcamp._id}`, 401)
+  );
+}
+
+
   // req.body will include anything thats sent from the body including the bootcamp property because i pulled it out of the URL and put it into req.body.bootcamp
   const course = await Course.create(req.body);
   res.status(200).json({ success: true, data: course });
@@ -84,6 +97,17 @@ exports.updateCourse = asyncHandler(async (req, res, next) => {
       new ErrorResponse(`No course with the id of ${req.params.id}`, 404)
     );
   }
+
+  // Make sure user is COURSE owner, course.user <--this is an objectID & req.user.id <-- is a string ;;; and an admin should be able to update a bootcamp regardless
+
+  if (course.user.toString() !== req.user.id && req.user.role!=='admin') {
+    return next(
+      new ErrorResponse(`User ${req.user.id} is not authorized to update course ${course._id}`, 401)
+    );
+  }
+  
+
+
   course = await Course.findByIdAndUpdate(req.params.id, req.body, {
     // returns the new version of the course
     new: true,
@@ -103,6 +127,16 @@ exports.deleteCourse = asyncHandler(async (req, res, next) => {
       new ErrorResponse(`No course with the id of ${req.params.id}`, 404)
     );
   }
+
+  
+  // Make sure user is COURSE owner, course.user <--this is an objectID & req.user.id <-- is a string ;;; and an admin should be able to update a bootcamp regardless
+
+  if (course.user.toString() !== req.user.id && req.user.role!=='admin') {
+    return next(
+      new ErrorResponse(`User ${req.user.id} is not authorized to delete course ${course._id}`, 401)
+    );
+  }
+  
   await course.remove();
   res.status(200).json({ success: true, data: {} });
 });
