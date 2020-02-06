@@ -10,13 +10,13 @@ const {
 } = require('../controllers/bootcamps');
 
 const Bootcamp=require('../models/Bootcamp');
-// wherever we want to use advancedResults, we need to pass it in with the method
-const advancedResults=require('../middleware/advancedResults');
 // Include other resource routers
 const courseRouter = require('./courses');
 
 const router = express.Router();
 
+// wherever we want to use advancedResults, we need to pass it in with the method
+const advancedResults=require('../middleware/advancedResults');
 // wherever we put 'protect' the user has to be logged in and 'authorize' is like permission for performing certain actions as a specific user role
 const {protect,authorize} =require('../middleware/auth');
 

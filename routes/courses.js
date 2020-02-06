@@ -8,12 +8,12 @@ const {
 } = require('../controllers/courses');
 
 const Course=require('../models/Course');
-const advancedResults=require('../middleware/advancedResults');
 
 // mergeParams:true is to make router.use('/:bootcampId/courses', courseRouter); from bootcamps.js (routes) work
 const router = express.Router({ mergeParams: true });
 
 
+const advancedResults=require('../middleware/advancedResults');
 // wherever we put 'protect' the user has to be logged in and 'authorize' is like permission for performing certain actions as a specific user role
 const {protect,authorize} =require('../middleware/auth');
 
