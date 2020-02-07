@@ -14,10 +14,16 @@ exports.protect = asyncHandler(async (req, res, next) => {
     req.headers.authorization.startsWith('Bearer')
   ) {
     // because  'Authorization' : 'Bearer eyjhbGciOi............'  <--value is the token
+    // Set token from Bearer token in header
     token = req.headers.authorization.split(' ')[1];
   }
-  // else if(req.cookies.token){
-  //   token=req.cookies.token;
+  // Set token from cookie
+
+  // else if (req.cookies.token) {
+  // when we login, the cookie get put in the client and its going to get sent with every request now. So if i go to a protected route like 'Get Logged in User via Token' and even if i take the Bearer Token out of the header and set it to No Auth....and i send, its still going to work because now its using the cookie (token wasnt found in the header but it looked in the cookies and it was in there so the token got set by that)
+
+  // but have a logout to clear out the cookie with the token
+  //   token = req.cookies.token;
   // }
 
   // Make sure token exists
